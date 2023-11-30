@@ -1,0 +1,70 @@
+
+//+------------------------------------------------------------------+
+//|                        Triple Hedging DC MT4                      |
+//|                  Developer's Site: forexroboteasy.com             |
+//|                Development: Forex Robot Easy Team                 |
+//+------------------------------------------------------------------+
+
+// Define input parameters
+input double LotSize = 0.01; // Lot size for each trade
+input double StopLoss = 50; // Stop loss in pips
+input double TakeProfit = 100; // Take profit in pips
+input double TrailingStop = 30; // Trailing stop in pips
+
+// Define global variables
+int ticket1, ticket2, ticket3; // Trade tickets for each currency pair
+bool isTrade1Open, isTrade2Open, isTrade3Open; // Flags to check if trades are open
+
+//+------------------------------------------------------------------+
+//|                      Expert Advisor Start                         |
+//+------------------------------------------------------------------+
+void OnTick()
+{
+    // Check if all trades are closed
+    if (!isTrade1Open && !isTrade2Open && !isTrade3Open)
+    {
+        // Open trades
+        ticket1 = OrderSend(Symbol(), OP_BUY, LotSize, Ask, 0, Bid - StopLoss * Point, Bid + TakeProfit * Point);
+        ticket2 = OrderSend(Symbol(), OP_BUY, LotSize, Ask, 0, Bid - StopLoss * Point, Bid + TakeProfit * Point);
+        ticket3 = OrderSend(Symbol(), OP_BUY, LotSize, Ask, 0, Bid - StopLoss * Point, Bid + TakeProfit * Point);
+
+        // Check if trades are opened successfully
+        if (ticket1 > 0 && ticket2 > 0 && ticket3 > 0)
+        {
+            isTrade1Open = true;
+            isTrade2Open = true;
+            isTrade3Open = true;
+        }
+    }
+    else
+    {
+        // Check trade status and manage trades
+        if (isTrade1Open)
+        {
+            if (OrderSelect(ticket1, SELECT_BY_TICKET))
+            {
+                // Close trade if stop loss or take profit is reached
+                if (OrderStopLoss() != 0 && (OrderStopLoss() - Bid) * Point >= StopLoss || (Ask - OrderTakeProfit()) * Point >= TakeProfit)
+                {
+                    OrderClose(ticket1, OrderLots(), Bid, 0, clrRed);
+                    isTrade1Open = false;
+                }
+                // Modify stop loss to trailing stop
+                else if (TrailingStop > 0 && (Bid - OrderOpenPrice()) * Point >= TrailingStop)
+                {
+                    OrderModify(ticket1, OrderOpenPrice(), Bid - TrailingStop * Point, OrderTakeProfit(), 0, clrBlue);
+                }
+            }
+        }
+        // Repeat the same for trade 2 and trade 3
+        // ...
+
+        // Check if all trades are closed
+        if (!isTrade1Open && !isTrade2Open && !isTrade3Open)
+        {
+            // Code to execute when all trades are closed
+            // ...
+        }
+    }
+}
+//+------------------------------------------------------------------+
